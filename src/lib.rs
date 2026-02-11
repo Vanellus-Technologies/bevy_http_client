@@ -18,7 +18,7 @@ pub enum JsonFallback {
     /// Use empty object {} as fallback
     #[default]
     EmptyObject,
-    /// Use empty array [] as fallback  
+    /// Use empty array [] as fallback
     EmptyArray,
     /// Use null as fallback
     Null,
@@ -530,6 +530,57 @@ impl HttpClient {
     pub fn json(self, body: &impl serde::Serialize) -> Self {
         // Use default fallback strategy (empty object)
         self.json_with_fallback(body, JsonFallback::default())
+    }
+
+    /// This method is used to set the body of the HTTP request using CBOR encoding.
+    ///
+    /// CBOR (Concise Binary Object Representation) is a binary data serialization format
+    /// that is more compact than JSON while maintaining similar features.
+    ///
+    /// # Arguments
+    ///
+    /// * `body` - A reference to a value that implements `serde::Serialize`. This will be
+    ///   serialized to CBOR format.
+    ///
+    /// # Returns
+    ///
+    /// * `Self` - Returns the instance of the `HttpClient` struct, allowing for method chaining.
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if CBOR serialization fails.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use bevy_http_client::HttpClient;
+    /// use serde::Serialize;
+    ///
+    /// #[derive(Serialize)]
+    /// struct MyData { name: String, age: u32 }
+    /// let data = MyData { name: "Alice".to_string(), age: 30 };
+    ///
+    /// let http_client = HttpClient::new()
+    ///     .post("http://example.com")
+    ///     .cbor(&data);
+    /// ```
+    pub fn cbor(mut self, body: &impl serde::Serialize) -> Self {
+        // Set Content-Type header to application/cbor
+        if let Some(headers) = self.headers.as_mut() {
+            headers.insert("Content-Type".to_string(), "application/cbor".to_string());
+        } else {
+            self.headers = Some(Headers::new(&[
+                ("Content-Type", "application/cbor"),
+                ("Accept", "*/*"),
+            ]));
+        }
+
+        // Serialize to CBOR
+        let mut buf = Vec::new();
+        ciborium::into_writer(body, &mut buf).expect("Failed to serialize CBOR");
+        self.body = buf;
+
+        self
     }
 
     /// This method is used to set the properties of the `HttpClient` instance using an `Request`

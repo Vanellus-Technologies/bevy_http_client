@@ -233,7 +233,7 @@ fn handle_typed_request<T: for<'a> Deserialize<'a> + Send + Sync + Clone + 'stat
                         match response {
                             Ok(response) => {
                                 let result: Result<T, _> =
-                                    serde_json::from_slice(response.bytes.as_slice());
+                                    ciborium::from_reader(response.bytes.as_slice());
 
                                 match result {
                                     // deserialize success, send response
